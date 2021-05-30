@@ -22,12 +22,13 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-mongoose.connect("mongodb+srv://admin-samuel:Test123@cluster0.lfj3f.mongodb.net/usersDB2", { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect("mongodb+srv://admin-samuel:Test123@cluster0.lfj3f.mongodb.net/usersDB1", { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.set("useCreateIndex", true);
 
 const userSchema = new mongoose.Schema({
 	email: String,
 	password: String,
+	name: String,
 });
 
 userSchema.plugin(passportLocalMongoose, { usernameField: "email" });
@@ -64,14 +65,43 @@ app.get("/register", function (req, res) {
 	res.render("register");
 });
 
+app.get("/password-reset", function (req, res) {
+	if (req.isAuthenticated()) {
+		res.render("password-reset");
+	} else {
+		res.redirect("/login");
+	}
+});
+
 app.post("/register", function (req, res) {
-	User.register({ email: req.body.email }, req.body.password, function (err, user) {
+	const newUser = {
+		email: req.body.email,
+		name: "Users name",
+	};
+	User.register(newUser, req.body.password, function (err, user) {
 		if (err) {
 			console.log(err);
 			res.redirect("/register");
 		} else {
 			passport.authenticate("local")(req, res, function () {
 				res.redirect("/secrets");
+			});
+		}
+	});
+});
+
+app.post("/password-reset", function (req, res) {
+	User.findOne({ email: req.user.email }, function (err, user) {
+		if (req.body.newPassword === req.body.confirmPassword) {
+			user.setPassword(req.body.newPassword, function (err, user) {
+					if (err) {
+						console.log(err);
+					} else {
+						user.save(function (err) {
+							console.log("Successfully set new password.")
+							res.redirect("/secrets")
+						});
+					}
 			});
 		}
 	});
