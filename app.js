@@ -30,8 +30,8 @@ mongoose.set("useCreateIndex", true);
 const userSchema = new mongoose.Schema({
 	email: String,
 	password: String,
-	name: String,
 	googleId: String,
+	secret: String,
 });
 
 userSchema.plugin(passportLocalMongoose, { usernameField: "email" });
@@ -90,7 +90,32 @@ app.get("/login", function (req, res) {
 
 app.get("/secrets", function (req, res) {
 	if (req.isAuthenticated()) {
-		res.render("secrets", { user: req.user });
+		// User.find({})
+		// 	.select("secret")
+		// 	.exec(function (err, docs) {
+		// 		if (err) {
+		// 			console.lor(err);
+		// 		} else {
+		// 			console.log(docs);
+		// 			res.render("secrets", { users: docs });
+		// 		}
+		// 	});
+		User.find({}, "secret", function (err, docs) {
+			if (err) {
+				console.lor(err);
+			} else {
+				console.log(docs);
+				res.render("secrets", { users: docs });
+			}
+		});
+	} else {
+		res.redirect("/login");
+	}
+});
+
+app.get("/submit", function (req, res) {
+	if (req.isAuthenticated()) {
+		res.render("submit");
 	} else {
 		res.redirect("/login");
 	}
@@ -169,6 +194,17 @@ app.post("/login", function (req, res) {
 	// 		res.redirect("/secrets");
 	// 	}
 	// });
+});
+
+app.post("/submit", function (req, res) {
+	const newSecret = req.body.secret;
+
+	User.findById(req.user.id, function (err, user) {
+		user.secret = newSecret;
+		user.save(function () {
+			res.redirect("/secrets");
+		});
+	});
 });
 
 app.listen(3000, function () {
